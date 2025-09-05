@@ -26,13 +26,33 @@
                     <div class="icon-image my-computer-icon"></div>
                     <div class="icon-text">My Computer</div>
                 </div>
-                <div class="media-player-window">
+                <img src="./monke.jpg" alt="monke" class="monke" />
+
+                <div class="media-player-window" id="wmpWindow">
                     <div class="title-bar">
                         <div class="title-bar-text">Windows Media Player</div>
                         <div class="title-bar-buttons">
-                            <button class="title-bar-button">_</button>
-                            <button class="title-bar-button">□</button>
-                            <button class="title-bar-button">✕</button>
+                            <button
+                                class="title-bar-button"
+                                id="btnMinimize"
+                                aria-label="Minimize"
+                            >
+                                _
+                            </button>
+                            <button
+                                class="title-bar-button"
+                                id="btnMaxRestore"
+                                aria-label="Maximize or Restore"
+                            >
+                                □
+                            </button>
+                            <button
+                                class="title-bar-button"
+                                id="btnClose"
+                                aria-label="Close"
+                            >
+                                ✕
+                            </button>
                         </div>
                     </div>
 
@@ -143,6 +163,7 @@
                     </span>
                     Start
                 </button>
+                <div class="taskbar-apps" id="taskbarApps"></div>
 
                 <div class="system-tray">
                     <span id="clock">12:00 PM</span>

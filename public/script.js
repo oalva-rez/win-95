@@ -466,3 +466,205 @@ document.addEventListener("DOMContentLoaded", function () {
 window.addEventListener("load", function () {
     handleMobileSafariViewport();
 });
+
+document.addEventListener("DOMContentLoaded", function () {
+    // --- Window elements ---
+    const wmpWindow = document.getElementById("wmpWindow");
+    const btnMinimize = document.getElementById("btnMinimize");
+    const btnMaxRestore = document.getElementById("btnMaxRestore");
+    const btnClose = document.getElementById("btnClose");
+    const taskbarApps = document.getElementById("taskbarApps");
+    const desktopLauncher = document.getElementById("desktopLauncher");
+
+    // Keep a single task button reference
+    let wmpTaskButton = null;
+    // Track whether we are maximized
+    let isMaximized = false;
+
+    // Create the taskbar button once
+    function ensureTaskButton() {
+        if (wmpTaskButton) return wmpTaskButton;
+        const btn = document.createElement("button");
+        btn.className = "task-button";
+        btn.type = "button";
+        btn.textContent = "Windows Media Player";
+        btn.addEventListener("click", () => {
+            // Restore if minimized or hidden
+            wmpWindow.classList.remove("minimized");
+            wmpWindow.style.display = ""; // ensure visible if closed reopened
+            focusWindow();
+        });
+        taskbarApps.appendChild(btn);
+        wmpTaskButton = btn;
+        return btn;
+    }
+
+    // Bring window to front visually
+    function focusWindow() {
+        // Simple focus by bumping z-index
+        wmpWindow.style.zIndex = 1002;
+        setTimeout(() => (wmpWindow.style.zIndex = ""), 0);
+    }
+
+    // Minimize - hide the window, show task button
+    btnMinimize.addEventListener("click", () => {
+        ensureTaskButton();
+        wmpWindow.classList.add("minimized");
+    });
+
+    // Maximize or restore toggle
+    btnMaxRestore.addEventListener("click", () => {
+        isMaximized = !isMaximized;
+        if (isMaximized) {
+            wmpWindow.classList.add("maximized");
+            btnMaxRestore.textContent = "▢"; // change to restore icon look if you want
+        } else {
+            wmpWindow.classList.remove("maximized");
+            btnMaxRestore.textContent = "□";
+        }
+        focusWindow();
+    });
+
+    // Close - stop playback and hide window
+    btnClose.addEventListener("click", () => {
+        console.log("Close button clicked");
+        try {
+            audio.pause();
+            video.pause();
+            audio.currentTime = 0;
+            video.currentTime = 0;
+        } catch {}
+        wmpWindow.classList.remove("maximized", "minimized");
+        wmpWindow.style.display = "none";
+        // Keep task button if you want quick reopen, or remove it if you want it gone
+        // Here we keep it for quick relaunch
+        ensureTaskButton();
+    });
+});
+
+(function () {
+    const wmpWindow = document.querySelector(".media-player-window");
+    const btns = Array.from(
+        document.querySelectorAll(".title-bar-buttons .title-bar-button")
+    );
+    if (!wmpWindow || btns.length < 3) return;
+
+    // map buttons: prefer data-action, else fall back to order
+    const byAction = Object.create(null);
+    btns.forEach((b, i) => {
+        const act = b.dataset && b.dataset.action;
+        if (act) byAction[act] = b;
+    });
+    const btnMin = byAction.min || btns[0];
+    const btnMax = byAction.maxrestore || btns[1];
+    const btnClose = byAction.close || btns[2];
+
+    // simple state
+    let isMaximized = false;
+    let taskBtn = null;
+    const taskbarApps = document.getElementById("taskbarApps");
+
+    function ensureTaskBtn() {
+        if (taskBtn || !taskbarApps) return taskBtn;
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "task-button";
+        b.textContent = "Windows Media Player";
+        addPress(b, () => {
+            wmpWindow.style.display = "";
+            wmpWindow.classList.remove("minimized");
+            focusWin();
+        });
+        taskbarApps.appendChild(b);
+        taskBtn = b;
+        return b;
+    }
+
+    function focusWin() {
+        wmpWindow.style.zIndex = 1002;
+        setTimeout(() => (wmpWindow.style.zIndex = ""), 0);
+    }
+
+    // unified press helper for iOS + desktop
+    function addPress(el, handler) {
+        let touched = false;
+
+        function run(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            handler(e);
+        }
+
+        el.addEventListener(
+            "touchend",
+            (e) => {
+                touched = true;
+                run(e);
+            },
+            { passive: false }
+        );
+
+        el.addEventListener("click", (e) => {
+            // ignore the click that follows a touch on some browsers
+            if (touched) {
+                touched = false;
+                return;
+            }
+            run(e);
+        });
+    }
+
+    // stop drag handlers on the title bar from eating taps on buttons
+    btns.forEach((b) => {
+        ["touchstart", "touchmove"].forEach((type) => {
+            b.addEventListener(type, (e) => e.stopPropagation(), {
+                passive: false,
+            });
+        });
+    });
+
+    // actions
+    addPress(btnMin, () => {
+        ensureTaskBtn();
+        wmpWindow.classList.add("minimized"); // ensure CSS sets display none for this class
+    });
+
+    addPress(btnMax, () => {
+        isMaximized = !isMaximized;
+        wmpWindow.classList.toggle("maximized", isMaximized);
+        // swap glyph if you like
+        if (!btnMax.dataset.action)
+            btnMax.textContent = isMaximized ? "▢" : "□";
+        focusWin();
+    });
+
+    addPress(btnClose, () => {
+        // stop media if available, but do not crash if not present
+        try {
+            const audio = document.querySelector("audio");
+            const video = document.querySelector("video");
+            if (audio) {
+                audio.pause();
+                audio.currentTime = 0;
+            }
+            if (video) {
+                video.pause();
+                video.currentTime = 0;
+            }
+        } catch {}
+        wmpWindow.classList.remove("maximized", "minimized");
+        wmpWindow.style.display = "none";
+        ensureTaskBtn(); // keep for quick reopen
+    });
+
+    // optional: make a desktop icon reopen it if you have one
+    const desktopLauncher = document.getElementById("desktopLauncher");
+    if (desktopLauncher) {
+        addPress(desktopLauncher, () => {
+            wmpWindow.style.display = "";
+            wmpWindow.classList.remove("minimized");
+            focusWin();
+            ensureTaskBtn();
+        });
+    }
+})();
