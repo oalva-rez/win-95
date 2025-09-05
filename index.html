@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+        />
+        <link rel="stylesheet" href="style.css" />
+        <title>Windows 95 Desktop</title>
+    </head>
+    <body>
+        <div class="desktop">
+            <div class="desktop-area">
+                <div class="desktop-icon" style="top: 20px; left: 20px">
+                    <div class="icon-image my-computer-icon"></div>
+                    <div class="icon-text">My Computer</div>
+                </div>
+                <div class="media-player-window">
+                    <div class="title-bar">
+                        <div class="title-bar-text">
+                            <div class="title-bar-icon"></div>
+                            Windows Media Player
+                        </div>
+                        <div class="title-bar-buttons">
+                            <button class="title-bar-button">_</button>
+                            <button class="title-bar-button">□</button>
+                            <button class="title-bar-button">✕</button>
+                        </div>
+                    </div>
+
+                    <div class="menu-bar">
+                        <div class="menu-item">File</div>
+                        <div class="menu-item">View</div>
+                        <div class="menu-item">Play</div>
+                        <div class="menu-item">Options</div>
+                        <div class="menu-item">Help</div>
+                    </div>
+
+                    <div class="display-area no-audio" id="displayArea">
+                        <canvas id="visualizer"></canvas>
+                        <div class="no-audio-text">
+                            Windows Media Player<br />
+                            No file loaded
+                        </div>
+                    </div>
+
+                    <div class="control-panel">
+                        <div class="track-info">
+                            <div class="track-text" id="trackName">
+                                Loaded Track - MoreLikeU.mp3
+                            </div>
+                        </div>
+
+                        <div class="progress-container">
+                            <div class="progress-bar" id="progressBar">
+                                <div
+                                    class="progress-fill"
+                                    id="progressFill"
+                                ></div>
+                            </div>
+                            <div class="time-display">
+                                <span id="currentTime">00:00</span>
+                                <span id="totalTime">00:00</span>
+                            </div>
+                        </div>
+
+                        <div class="button-controls">
+                            <button class="control-button" id="prevBtn">
+                                ◄◄
+                            </button>
+                            <button class="control-button large" id="playBtn">
+                                ►
+                            </button>
+                            <button
+                                class="control-button"
+                                id="pauseBtn"
+                                style="display: none"
+                            >
+                                ❚❚
+                            </button>
+                            <button class="control-button" id="stopBtn">
+                                ■
+                            </button>
+                            <button class="control-button" id="nextBtn">
+                                ►►
+                            </button>
+                        </div>
+
+                        <div class="volume-control">
+                            <span class="volume-label">Volume:</span>
+                            <div class="volume-slider" id="volumeSlider">
+                                <div
+                                    class="volume-track"
+                                    id="volumeTrack"
+                                ></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="status-bar">
+                        <div class="status-section">Ready</div>
+                        <div class="status-section" id="statusRight">
+                            Stereo
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hidden audio element with sample audio -->
+                <audio id="audioPlayer">
+                    <!-- Using a public domain audio file for demo -->
+                    <source src="./MoreLikeU.mp3" type="audio/mpeg" />
+                </audio>
+            </div>
+
+            <div class="taskbar">
+                <button class="start-button" id="startBtn">
+                    <span class="windows-logo"></span>
+                    Start
+                </button>
+
+                <div class="system-tray">
+                    <span id="clock">12:00 PM</span>
+                </div>
+            </div>
+
+            <div class="start-menu" id="startMenu">
+                <div class="start-menu-header">Windows 95</div>
+                <div class="start-menu-items">
+                    <div class="menu-item">
+                        <span class="menu-icon program-icon"></span>
+                        Programs
+                        <span class="menu-arrow">▶</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-icon folder-icon"></span>
+                        Documents
+                        <span class="menu-arrow">▶</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-icon settings-icon"></span>
+                        Settings
+                        <span class="menu-arrow">▶</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-icon find-icon"></span>
+                        Find
+                        <span class="menu-arrow">▶</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-icon help-icon"></span>
+                        Help
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-icon run-icon"></span>
+                        Run...
+                    </div>
+                    <div class="menu-separator"></div>
+                    <div class="menu-item">
+                        <span class="menu-icon shutdown-icon"></span>
+                        Shut Down...
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script src="script.js"></script>
+    </body>
+</html>
