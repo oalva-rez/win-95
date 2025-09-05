@@ -100,34 +100,13 @@ body {
     position: relative;
     display: inline-block;
 }
-
-.windows-logo::before {
-    content: "";
-    position: absolute;
-    width: 16px;
-    height: 14px;
-    background: linear-gradient(
-        to right,
-        #ff0000 0%,
-        #ff0000 22%,
-        transparent 22%,
-        transparent 28%,
-        #00ff00 28%,
-        #00ff00 50%,
-        transparent 50%,
-        transparent 52%,
-        #0000ff 52%,
-        #0000ff 74%,
-        transparent 74%,
-        transparent 80%,
-        #ffff00 80%,
-        #ffff00 100%
-    );
-    background-size: 8px 7px;
-    background-repeat: repeat;
-    filter: contrast(1.2);
+.windows-logo img {
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
 }
-
 /* System Tray */
 .system-tray {
     margin-left: auto;
@@ -392,12 +371,16 @@ body {
 }
 /* Window Container */
 .media-player-window {
+    position: relative;
+    z-index: 10;
     background: #c0c0c0;
     border: 2px solid;
     border-color: #ffffff #000000 #000000 #ffffff;
     box-shadow: 1px 1px 0 #000000;
     width: 100%;
     max-width: 400px;
+    justify-self: center;
+    align-self: center;
 }
 
 /* Title Bar */
@@ -486,10 +469,21 @@ body {
     overflow: hidden;
 }
 
+#videoPlayer {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: none;
+}
+
 #visualizer {
     width: 100%;
     height: 100%;
     display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
 }
 
 .no-audio-text {
@@ -502,14 +496,29 @@ body {
     font-size: 10px;
     text-align: center;
     display: none;
+    z-index: 2;
 }
 
 .display-area.no-audio .no-audio-text {
     display: block;
 }
 
+.display-area.no-audio #videoPlayer {
+    display: none;
+}
+
 .display-area.no-audio #visualizer {
     display: none;
+}
+
+.display-area:not(.no-audio) #videoPlayer {
+    display: block;
+}
+
+.display-area:not(.no-audio) #visualizer {
+    display: block;
+    opacity: 0.3;
+    mix-blend-mode: screen;
 }
 
 /* Control Panel */
@@ -540,7 +549,7 @@ body {
 
 @keyframes scroll {
     0% {
-        transform: translateX(230%);
+        transform: translateX(120%);
     }
     100% {
         transform: translateX(-100%);

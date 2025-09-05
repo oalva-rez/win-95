@@ -38,6 +38,7 @@ document.querySelector(".desktop-icon").addEventListener("click", function () {
 });
 
 const audio = document.getElementById("audioPlayer");
+const video = document.getElementById("videoPlayer");
 const playBtn = document.getElementById("playBtn");
 const pauseBtn = document.getElementById("pauseBtn");
 const stopBtn = document.getElementById("stopBtn");
@@ -87,8 +88,7 @@ function drawVisualizer() {
 
     analyser.getByteFrequencyData(dataArray);
 
-    ctx.fillStyle = "#000000";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     const barWidth = (canvas.width / dataArray.length) * 2;
     let x = 0;
@@ -96,15 +96,27 @@ function drawVisualizer() {
     for (let i = 0; i < dataArray.length; i++) {
         const barHeight = (dataArray[i] / 255) * canvas.height * 0.8;
 
-        // Classic green gradient
+        // Classic green gradient with transparency for overlay effect
         const intensity = dataArray[i] / 255;
         const green = Math.floor(255 * intensity);
         const red = Math.floor(100 * intensity);
-        ctx.fillStyle = `rgb(${red}, ${green}, 0)`;
+        ctx.fillStyle = `rgba(${red}, ${green}, 0, 0.8)`;
 
         ctx.fillRect(x, canvas.height - barHeight, barWidth - 2, barHeight);
         x += barWidth;
     }
+}
+
+// Get the duration of the longer media file
+function getMaxDuration() {
+    const audioDuration = audio.duration || 0;
+    const videoDuration = video.duration || 0;
+    return Math.max(audioDuration, videoDuration);
+}
+
+// Get the current time of the primary media (audio)
+function getCurrentTime() {
+    return audio.currentTime || 0;
 }
 
 // Format time
@@ -116,20 +128,44 @@ function formatTime(seconds) {
         .padStart(2, "0")}`;
 }
 
+// Sync video to audio time
+function syncMedia() {
+    if (Math.abs(video.currentTime - audio.currentTime) > 0.3) {
+        video.currentTime = audio.currentTime;
+    }
+}
+
 // Play button
 playBtn.addEventListener("click", () => {
     initVisualizer();
-    audio.play();
-    playBtn.style.display = "none";
-    pauseBtn.style.display = "flex";
-    displayArea.classList.remove("no-audio");
-    trackName.textContent = "Loaded Track - MoreLikeU.mp3";
-    drawVisualizer();
+
+    // Play both audio and video
+    const audioPromise = audio.play();
+    const videoPromise = video.play();
+
+    Promise.all([audioPromise, videoPromise])
+        .then(() => {
+            playBtn.style.display = "none";
+            pauseBtn.style.display = "flex";
+            displayArea.classList.remove("no-audio");
+            trackName.textContent = "MoreLikeU.mp3 + MoreLikeU_Vizualizer.mp4";
+            drawVisualizer();
+        })
+        .catch(() => {
+            // If video fails to load, still play audio
+            audio.play();
+            playBtn.style.display = "none";
+            pauseBtn.style.display = "flex";
+            displayArea.classList.remove("no-audio");
+            trackName.textContent = "MoreLikeU.mp3 + MoreLikeU_Vizualizer.mp4";
+            drawVisualizer();
+        });
 });
 
 // Pause button
 pauseBtn.addEventListener("click", () => {
     audio.pause();
+    video.pause();
     pauseBtn.style.display = "none";
     playBtn.style.display = "flex";
     cancelAnimationFrame(animationId);
@@ -138,7 +174,9 @@ pauseBtn.addEventListener("click", () => {
 // Stop button
 stopBtn.addEventListener("click", () => {
     audio.pause();
+    video.pause();
     audio.currentTime = 0;
+    video.currentTime = 0;
     pauseBtn.style.display = "none";
     playBtn.style.display = "flex";
     progressFill.style.width = "0%";
@@ -146,34 +184,46 @@ stopBtn.addEventListener("click", () => {
     cancelAnimationFrame(animationId);
 
     // Clear visualizer
-    ctx.fillStyle = "#000000";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 });
 
 // Update progress
 audio.addEventListener("timeupdate", () => {
-    if (audio.duration) {
-        const progress = (audio.currentTime / audio.duration) * 100;
+    const maxDuration = getMaxDuration();
+    if (maxDuration) {
+        const progress = (getCurrentTime() / maxDuration) * 100;
         progressFill.style.width = progress + "%";
-        currentTimeEl.textContent = formatTime(audio.currentTime);
+        currentTimeEl.textContent = formatTime(getCurrentTime());
     }
+
+    // Sync video with audio
+    syncMedia();
 });
 
-// Set duration
-audio.addEventListener("loadedmetadata", () => {
-    totalTimeEl.textContent = formatTime(audio.duration);
-});
+// Set duration when both media files are loaded
+function updateDuration() {
+    const maxDuration = getMaxDuration();
+    if (maxDuration) {
+        totalTimeEl.textContent = formatTime(maxDuration);
+    }
+}
+
+audio.addEventListener("loadedmetadata", updateDuration);
+video.addEventListener("loadedmetadata", updateDuration);
 
 // Progress bar click
 progressBar.addEventListener("click", (e) => {
-    if (audio.duration) {
+    const maxDuration = getMaxDuration();
+    if (maxDuration) {
         const rect = progressBar.getBoundingClientRect();
         const percent = (e.clientX - rect.left) / rect.width;
-        audio.currentTime = percent * audio.duration;
+        const newTime = percent * maxDuration;
+        audio.currentTime = newTime;
+        video.currentTime = newTime;
     }
 });
 
-// Volume control
+// Volume control (affects audio only, video stays muted)
 volumeSlider.addEventListener("click", (e) => {
     const rect = volumeSlider.getBoundingClientRect();
     const percent = (e.clientX - rect.left) / rect.width;
@@ -185,18 +235,35 @@ volumeSlider.addEventListener("click", (e) => {
 
 // Audio ended
 audio.addEventListener("ended", () => {
+    video.pause();
     pauseBtn.style.display = "none";
     playBtn.style.display = "flex";
     cancelAnimationFrame(animationId);
-    ctx.fillStyle = "#000000";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 });
 
-// Previous/Next buttons (non-functional but provide feedback)
+// Video ended
+video.addEventListener("ended", () => {
+    // Don't stop audio if video ends first
+    if (audio.ended || audio.currentTime >= audio.duration) {
+        audio.pause();
+        pauseBtn.style.display = "none";
+        playBtn.style.display = "flex";
+        cancelAnimationFrame(animationId);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+});
+
+// Previous/Next buttons (seek by 10 seconds)
 document.getElementById("prevBtn").addEventListener("click", () => {
-    audio.currentTime = Math.max(0, audio.currentTime - 10);
+    const newTime = Math.max(0, getCurrentTime() - 10);
+    audio.currentTime = newTime;
+    video.currentTime = newTime;
 });
 
 document.getElementById("nextBtn").addEventListener("click", () => {
-    audio.currentTime = Math.min(audio.duration, audio.currentTime + 10);
+    const maxDuration = getMaxDuration();
+    const newTime = Math.min(maxDuration, getCurrentTime() + 10);
+    audio.currentTime = newTime;
+    video.currentTime = newTime;
 });
