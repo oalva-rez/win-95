@@ -267,3 +267,202 @@ document.getElementById("nextBtn").addEventListener("click", () => {
     audio.currentTime = newTime;
     video.currentTime = newTime;
 });
+
+function suppressVideoControls() {
+    const video = document.getElementById("videoPlayer");
+
+    // Remove controls attribute completely
+    video.removeAttribute("controls");
+
+    // Prevent context menu
+    video.addEventListener("contextmenu", function (e) {
+        e.preventDefault();
+        return false;
+    });
+
+    // Prevent double-click fullscreen
+    video.addEventListener("dblclick", function (e) {
+        e.preventDefault();
+        return false;
+    });
+
+    // Prevent any click events that might trigger controls
+    video.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+    });
+
+    // Prevent focus that might show controls
+    video.addEventListener("focus", function (e) {
+        e.preventDefault();
+        video.blur();
+    });
+
+    // Suppress controls on any media events
+    const mediaEvents = [
+        "loadstart",
+        "loadeddata",
+        "loadedmetadata",
+        "canplay",
+        "canplaythrough",
+        "play",
+        "playing",
+        "pause",
+        "ended",
+        "seeking",
+        "seeked",
+        "timeupdate",
+        "volumechange",
+        "ratechange",
+        "durationchange",
+        "progress",
+    ];
+
+    mediaEvents.forEach((eventType) => {
+        video.addEventListener(eventType, function () {
+            video.removeAttribute("controls");
+            // Force hide any controls that might appear
+            if (video.controls) {
+                video.controls = false;
+            }
+        });
+    });
+
+    // Continuously ensure controls stay hidden
+    setInterval(() => {
+        if (video.controls) {
+            video.controls = false;
+        }
+        video.removeAttribute("controls");
+    }, 100);
+}
+
+// Call this function after the DOM is loaded
+document.addEventListener("DOMContentLoaded", suppressVideoControls);
+
+// Also call it when the video is ready
+document
+    .getElementById("videoPlayer")
+    .addEventListener("loadedmetadata", suppressVideoControls);
+
+// Function to handle mobile Safari viewport issues
+function handleMobileSafariViewport() {
+    // Set CSS custom property for dynamic viewport height
+    function updateViewportHeight() {
+        const vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty("--vh", `${vh}px`);
+
+        // Also set a specific height for the desktop
+        const desktop = document.querySelector(".desktop");
+        if (desktop) {
+            desktop.style.height = `${window.innerHeight}px`;
+        }
+
+        // Ensure taskbar stays at bottom
+        const taskbar = document.querySelector(".taskbar");
+        if (taskbar) {
+            taskbar.style.bottom = "0px";
+            taskbar.style.position = "fixed";
+        }
+    }
+
+    // Update on initial load
+    updateViewportHeight();
+
+    // Update on resize (when Safari interface appears/disappears)
+    window.addEventListener("resize", updateViewportHeight);
+
+    // Update on orientation change
+    window.addEventListener("orientationchange", () => {
+        setTimeout(updateViewportHeight, 100);
+    });
+
+    // For iOS Safari specifically - handle scroll events
+    let ticking = false;
+    function handleScroll() {
+        if (!ticking) {
+            requestAnimationFrame(() => {
+                updateViewportHeight();
+                ticking = false;
+            });
+            ticking = true;
+        }
+    }
+
+    // Only add scroll listener on mobile devices
+    if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        window.addEventListener("scroll", handleScroll, { passive: true });
+
+        // Also listen for touch events that might trigger Safari UI changes
+        document.addEventListener(
+            "touchstart",
+            () => {
+                setTimeout(updateViewportHeight, 300);
+            },
+            { passive: true }
+        );
+    }
+
+    // Force update after a short delay (helps with initial load)
+    setTimeout(updateViewportHeight, 500);
+}
+
+// Function to prevent scrolling on mobile (keeps desktop fixed)
+function preventMobileScroll() {
+    // Prevent pull-to-refresh and other scroll behaviors
+    document.body.addEventListener(
+        "touchstart",
+        function (e) {
+            if (e.touches.length === 1) {
+                // Prevent default only if not interacting with controls
+                const target = e.target;
+                const isControl = target.closest(
+                    ".control-button, .progress-bar, .volume-slider, .start-button, .menu-item"
+                );
+                if (!isControl) {
+                    // Only prevent if at the top or bottom of scroll
+                    const scrollTop =
+                        window.pageYOffset ||
+                        document.documentElement.scrollTop;
+                    const scrollHeight = document.documentElement.scrollHeight;
+                    const clientHeight = document.documentElement.clientHeight;
+
+                    if (
+                        scrollTop === 0 ||
+                        scrollTop === scrollHeight - clientHeight
+                    ) {
+                        e.preventDefault();
+                    }
+                }
+            }
+        },
+        { passive: false }
+    );
+
+    // Prevent overscroll
+    document.body.addEventListener(
+        "touchmove",
+        function (e) {
+            const target = e.target;
+            const isScrollable = target.closest(
+                ".desktop-area, .start-menu-items"
+            );
+            if (!isScrollable) {
+                e.preventDefault();
+            }
+        },
+        { passive: false }
+    );
+}
+
+// Initialize mobile Safari fixes
+document.addEventListener("DOMContentLoaded", function () {
+    handleMobileSafariViewport();
+    preventMobileScroll();
+});
+
+// Also run when page is fully loaded
+window.addEventListener("load", function () {
+    handleMobileSafariViewport();
+});

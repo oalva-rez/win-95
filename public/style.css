@@ -1,3 +1,8 @@
+html {
+    height: 100%;
+    height: -webkit-fill-available;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -14,21 +19,40 @@ body {
     position: fixed;
     width: 100%;
     height: 100%;
+    height: 100vh;
+    height: 100dvh; /* Dynamic viewport height - newer browsers */
+    height: -webkit-fill-available; /* Safari fallback */
+    height: calc(var(--vh, 1vh) * 100);
 }
 
 .desktop {
     background: #008080;
     height: 100vh;
+    height: 100dvh; /* Dynamic viewport height */
+    height: -webkit-fill-available; /* Safari fallback */
     width: 100vw;
     position: relative;
     display: flex;
     flex-direction: column;
+    /* Ensure it takes full available space */
+    min-height: 100vh;
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
 }
 
 .desktop-area {
     flex: 1;
     position: relative;
     padding: 10px;
+    /* Account for taskbar height */
+    padding-bottom: 38px; /* 28px taskbar + 10px padding */
+    /* Use calc to ensure proper spacing */
+    height: calc(100vh - 28px);
+    height: calc(100dvh - 28px);
+    height: calc(-webkit-fill-available - 28px);
+    height: calc((var(--vh, 1vh) * 100) - 28px);
+
+    overflow: hidden;
 }
 
 /* Desktop Icon */
@@ -67,8 +91,48 @@ body {
     border-top: 2px solid #ffffff;
     display: flex;
     align-items: center;
-    position: relative;
+    position: fixed; /* Changed from relative to fixed */
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
     flex-shrink: 0;
+    z-index: 1000;
+    /* Safe area for modern mobile browsers */
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    /* Ensure it's always visible */
+    box-sizing: border-box;
+}
+
+@supports (padding: max(0px)) {
+    .desktop {
+        padding-top: env(safe-area-inset-top, 0);
+        padding-bottom: env(safe-area-inset-bottom, 0);
+        padding-left: env(safe-area-inset-left, 0);
+        padding-right: env(safe-area-inset-right, 0);
+    }
+
+    .taskbar {
+        padding-bottom: max(env(safe-area-inset-bottom, 0), 0px);
+        /* Adjust height to account for safe area */
+        height: calc(28px + env(safe-area-inset-bottom, 0));
+    }
+
+    .desktop-area {
+        /* Account for both taskbar and safe area */
+        height: calc(
+            100vh - 28px - env(safe-area-inset-top, 0) -
+                env(safe-area-inset-bottom, 0)
+        );
+        height: calc(
+            100dvh - 28px - env(safe-area-inset-top, 0) -
+                env(safe-area-inset-bottom, 0)
+        );
+        height: calc(
+            -webkit-fill-available - 28px - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0)
+        );
+        padding-bottom: calc(28px + env(safe-area-inset-bottom, 0) + 10px);
+    }
 }
 
 /* Start Button */
@@ -123,15 +187,67 @@ body {
 
 /* Start Menu */
 .start-menu {
-    position: absolute;
-    bottom: 28px;
+    position: fixed; /* Changed from absolute to fixed */
+    bottom: 28px; /* Position above taskbar */
+    bottom: calc(
+        28px + env(safe-area-inset-bottom, 0)
+    ); /* Account for safe area */
     left: 0;
     width: 170px;
     background: #c0c0c0;
     border: 2px solid;
     border-color: #ffffff #000000 #000000 #ffffff;
     display: none;
-    z-index: 1000;
+    z-index: 1001; /* Higher than taskbar */
+}
+
+@media screen and (max-width: 768px) {
+    /* Ensure the desktop takes full height on mobile */
+    .desktop {
+        min-height: 100vh;
+        min-height: 100dvh;
+        min-height: -webkit-fill-available;
+        /* Prevent scrolling */
+        overflow: hidden;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+    }
+
+    .desktop-area {
+        /* More aggressive height setting for mobile */
+        height: calc(100vh - 28px);
+        height: calc(100dvh - 28px);
+        height: calc(-webkit-fill-available - 28px);
+        max-height: calc(100vh - 28px);
+        max-height: calc(100dvh - 28px);
+        max-height: calc(-webkit-fill-available - 28px);
+    }
+
+    /* Make sure taskbar is always visible */
+    .taskbar {
+        position: fixed;
+        bottom: 0;
+        width: 100vw;
+        z-index: 9999;
+        /* Force it to stay at bottom */
+        transform: translateZ(0); /* Force hardware acceleration */
+    }
+}
+
+/* Specific fix for iOS Safari */
+@supports (-webkit-touch-callout: none) {
+    .desktop {
+        height: -webkit-fill-available;
+        min-height: -webkit-fill-available;
+    }
+
+    .desktop-area {
+        height: calc(-webkit-fill-available - 28px);
+        max-height: calc(-webkit-fill-available - 28px);
+    }
 }
 
 .start-menu.active {
@@ -381,6 +497,15 @@ body {
     max-width: 400px;
     justify-self: center;
     align-self: center;
+    top: 20%;
+}
+
+@media (max-width: 600px) {
+    .media-player-window {
+        top: 18%;
+        width: 250px;
+        margin: auto;
+    }
 }
 
 /* Title Bar */
@@ -474,6 +599,128 @@ body {
     height: 100%;
     object-fit: contain;
     display: none;
+
+    /* Remove all native video controls */
+    -webkit-appearance: none;
+    -webkit-user-select: none;
+    user-select: none;
+
+    /* Hide controls completely */
+    -webkit-media-controls: none !important;
+    -webkit-media-controls-panel: none !important;
+    -webkit-media-controls-play-button: none !important;
+    -webkit-media-controls-start-playback-button: none !important;
+    -webkit-media-controls-overlay-play-button: none !important;
+    -webkit-media-controls-timeline: none !important;
+    -webkit-media-controls-current-time-display: none !important;
+    -webkit-media-controls-time-remaining-display: none !important;
+    -webkit-media-controls-mute-button: none !important;
+    -webkit-media-controls-volume-slider: none !important;
+    -webkit-media-controls-fullscreen-button: none !important;
+    -webkit-media-controls-wireless-playback-picker-button: none !important;
+
+    /* Additional control hiding */
+    -webkit-media-controls-enclosure: none !important;
+    -webkit-media-controls-panel-container: none !important;
+}
+
+/* Hide any pseudo-elements that might show controls */
+#videoPlayer::-webkit-media-controls {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+#videoPlayer::-webkit-media-controls-panel {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+#videoPlayer::-webkit-media-controls-play-button {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+#videoPlayer::-webkit-media-controls-start-playback-button {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+#videoPlayer::-webkit-media-controls-overlay-play-button {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+#videoPlayer::-webkit-media-controls-timeline {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+#videoPlayer::-webkit-media-controls-current-time-display {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+#videoPlayer::-webkit-media-controls-time-remaining-display {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+#videoPlayer::-webkit-media-controls-mute-button {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+#videoPlayer::-webkit-media-controls-volume-slider {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+#videoPlayer::-webkit-media-controls-fullscreen-button {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+#videoPlayer::-webkit-media-controls-wireless-playback-picker-button {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+/* Prevent any overlay controls from appearing */
+#videoPlayer::-webkit-media-controls-enclosure {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+/* Hide any controls that might appear on hover/focus */
+#videoPlayer:hover::-webkit-media-controls,
+#videoPlayer:focus::-webkit-media-controls {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+/* Prevent right-click context menu */
+#videoPlayer {
+    pointer-events: none;
+}
+
+/* Allow clicks to pass through to parent for custom controls */
+.display-area {
+    pointer-events: auto;
 }
 
 #visualizer {
